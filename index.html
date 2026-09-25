@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ColorNick</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+        --bg: #101014;
+        --bg-soft: #17171e;
+        --bg-card: #1c1c25;
+        --border: #2a2a35;
+        --border-hi: #3a3a48;
+        --text: #e6e6ee;
+        --text-mid: #a4a4b4;
+        --text-dim: #6e6e80;
+        --accent: #ff5c5c;
+        --accent-2: #ffb347;
+        --success: #4ade80;
+        --error: #ff6b6b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.65;
+        padding: 0 16px;
+        overflow-x: hidden;
+    }
+    body::before {
+        content: '';
+        position: fixed;
+        top: -200px; left: 50%;
+        transform: translateX(-50%);
+        width: 800px; height: 800px;
+        background: radial-gradient(circle, rgba(255,92,92,0.06), transparent 65%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .lang-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(10,10,14,0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 1;
+        transition: opacity 0.6s ease;
+    }
+    .lang-overlay::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        backdrop-filter: blur(24px) saturate(1.2);
+        -webkit-backdrop-filter: blur(24px) saturate(1.2);
+        -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 100%);
+        mask-image: linear-gradient(to bottom, #000 0%, #000 100%);
+        transition: -webkit-mask-image 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                    mask-image 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                    opacity 0.6s ease;
+        pointer-events: none;
+    }
+    .lang-overlay.hovered::before {
+        -webkit-mask-image: linear-gradient(to bottom,
+            #000 0%, #000 14%,
+            transparent 38%, transparent 62%,
+            #000 86%, #000 100%);
+        mask-image: linear-gradient(to bottom,
+            #000 0%, #000 14%,
+            transparent 38%, transparent 62%,
+            #000 86%, #000 100%);
+    }
+    .lang-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    .lang-overlay.hidden::before { opacity: 0; }
+
+    .lang-stage {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        transform: translateX(0);
+        transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .lang-stage.shift {
+        transform: translateX(-280px);
+    }
+    .lang-box {
+        background: rgba(23,23,30,0.85);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+        max-width: 480px;
+        width: 100%;
+        transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .lang-title {
+        font-size: 13px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        text-align: center;
+        margin-bottom: 24px;
+        font-weight: 600;
+        transition: opacity 0.2s ease;
+    }
+    .lang-options {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .lang-btn {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 18px 22px;
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        cursor: pointer;
+        text-align: left;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 15px;
+        transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .lang-btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255,92,92,0.12), transparent 70%);
+        opacity: 0;
+        transition: opacity 0.35s;
+    }
+    .lang-btn:hover {
+        border-color: var(--accent);
+        transform: translateX(6px);
+        background: var(--bg-card);
+    }
+    .lang-btn:hover::before { opacity: 1; }
+    .lang-btn .flag {
+        font-size: 32px;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+    }
+    .lang-btn .info {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        z-index: 1;
+    }
+    .lang-btn .name {
+        font-weight: 700;
+        font-size: 17px;
+        color: var(--text);
+    }
+    .lang-btn .native {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-top: 2px;
+    }
+    .lang-preview {
+        min-width: 260px;
+        opacity: 0;
+        transform: translateX(-30px);
+        transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        pointer-events: none;
+        text-align: left;
+    }
+    .lang-preview.show {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .lang-preview .pv-flag {
+        font-size: 90px;
+        line-height: 1;
+        margin-bottom: 12px;
+        display: block;
+        transition: transform 0.5s ease;
+    }
+    .lang-preview .pv-name {
+        font-size: 42px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        line-height: 1;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 8px;
+    }
+    .lang-preview .pv-sub {
+        font-size: 14px;
+        color: var(--text-mid);
+        max-width: 260px;
+        line-height: 1.5;
+    }
+    .lang-preview .pv-sub .lang-switch-btn {
+        display: inline-block;
+        margin-top: 18px;
+        padding: 10px 22px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 100px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        text-transform: uppercase;
+        pointer-events: auto;
+    }
+    .lang-preview .pv-sub .lang-switch-btn:hover {
+        background: #ff7373;
+        transform: scale(1.05);
+        box-shadow: 0 10px 25px rgba(255,92,92,0.4);
+    }
+    @media (max-width: 800px) {
+        .lang-stage.shift { transform: translateX(0); }
+        .lang-stage { flex-direction: column; gap: 20px; padding: 20px; }
+        .lang-preview { min-width: 0; text-align: center; }
+        .lang-preview .pv-sub { max-width: 100%; margin: 0 auto; }
+        .lang-preview .pv-name { font-size: 32px; }
+        .lang-preview .pv-flag { font-size: 64px; }
+        .lang-box { padding: 26px; }
+    }
+
+    .lang-switch {
+        position: absolute;
+        top: 24px;
+        right: 20px;
+        display: flex;
+        gap: 4px;
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        padding: 4px;
+        z-index: 10;
+    }
+    .lang-switch button {
+        padding: 6px 14px;
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .lang-switch button:hover { color: var(--text); }
+    .lang-switch button.active {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    #content {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 0 60px;
+        position: relative;
+        z-index: 1;
+    }
+
+    #logo {
+        text-align: center;
+        padding: 24px 0 6px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+    #logo .logo-img-wrap {
+        width: 48px; height: 48px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s, border-color 0.3s;
+    }
+    #logo .logo-img-wrap:hover {
+        transform: rotate(-5deg) scale(1.05);
+        border-color: var(--accent);
+    }
+    #logo .logo-img-wrap img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    #logo .logo-img-wrap .logo-fallback {
+        font-size: 22px;
+        display: none;
+    }
+    #logo .logo-img-wrap.img-placeholder .logo-fallback { display: block; }
+    #logo a {
+        font-size: 26px; font-weight: 800; color: var(--text);
+        text-decoration: none; letter-spacing: -0.5px;
+        transition: opacity 0.3s;
+    }
+    #logo a:hover { opacity: 0.8; }
+    #logo a span { color: var(--accent); }
+
+    #title {
+        text-align: center; font-size: 13px; color: var(--text-dim);
+        margin-bottom: 20px;
+    }
+
+    .banner-wrap {
+        position: relative;
+        margin: 0 auto 30px;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: linear-gradient(135deg, var(--bg-soft), var(--bg-card));
+        transition: border-color 0.3s, transform 0.3s;
+    }
+    .banner-wrap:hover {
+        border-color: var(--border-hi);
+        transform: translateY(-2px);
+    }
+    .banner-wrap img {
+        display: block;
+        width: 100%; height: auto;
+        max-height: 340px;
+        object-fit: cover;
+    }
+    .banner-fallback {
+        display: none;
+        padding: 60px 20px;
+        text-align: center;
+        color: var(--text-dim);
+        font-size: 13px;
+        line-height: 1.8;
+    }
+    .banner-fallback .icon {
+        font-size: 42px;
+        display: block;
+        margin-bottom: 10px;
+        opacity: 0.6;
+    }
+    .banner-fallback code {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        padding: 3px 8px;
+        border-radius: 5px;
+        font-size: 12px;
+        color: var(--accent-2);
+    }
+    .banner-wrap.img-placeholder .banner-fallback { display: block; }
+
+    .img-wrap {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: var(--bg-soft);
+        margin: 16px 0;
+        transition: border-color 0.3s, transform 0.3s;
+    }
+    .img-wrap:hover {
+        border-color: var(--border-hi);
+        transform: translateY(-2px);
+    }
+    .img-wrap img { display: block; width: 100%; height: auto; }
+    .img-wrap .img-fallback {
+        display: none;
+        padding: 44px 20px;
+        text-align: center;
+        color: var(--text-dim);
+        font-size: 13px;
+        line-height: 1.8;
+    }
+    .img-wrap .img-fallback .icon {
+        font-size: 36px;
+        display: block;
+        margin-bottom: 10px;
+        opacity: 0.6;
+    }
+    .img-wrap .img-fallback code {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        padding: 3px 8px;
+        border-radius: 5px;
+        font-size: 12px;
+        color: var(--accent-2);
+    }
+    .img-wrap.img-placeholder .img-fallback { display: block; }
+    .img-caption {
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-dim);
+        margin: -8px 0 18px;
+        font-style: italic;
+    }
+
+    .tabs {
+        display: flex; flex-wrap: wrap; gap: 6px;
+        margin-bottom: 0; padding: 0 4px;
+        border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+        padding: 10px 20px; font-size: 14px; font-weight: 600;
+        color: var(--text-mid); background: transparent; border: none;
+        border-bottom: 2px solid transparent; cursor: pointer;
+        transition: all 0.25s ease; position: relative; top: 1px;
+        border-radius: 6px 6px 0 0;
+        font-family: inherit;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--bg-soft); }
+    .tab-btn.active {
+        color: var(--accent); border-bottom-color: var(--accent);
+        background: var(--bg-soft);
+    }
+
+    .tab-panel {
+        display: none; opacity: 0; transform: translateY(8px);
+        transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .tab-panel.active { display: block; opacity: 1; transform: translateY(0); }
+
+    h1 { font-size: 26px; font-weight: 800; margin: 32px 0 14px; letter-spacing: -0.5px; }
+    h2 { font-size: 20px; font-weight: 700; margin: 30px 0 12px; letter-spacing: -0.3px; }
+    h3 { font-size: 16px; font-weight: 700; margin: 22px 0 8px; }
+    p { margin: 0 0 12px; color: var(--text); }
+    p.muted { color: var(--text-mid); font-size: 14px; }
+    ul, ol { margin: 0 0 14px 22px; }
+    li { margin-bottom: 6px; color: var(--text); }
+    li::marker { color: var(--accent); }
+
+    a {
+        color: var(--accent-2); text-decoration: none;
+        transition: color 0.3s ease, opacity 0.3s ease;
+    }
+    a:hover { color: var(--accent); }
+
+    code {
+        font-family: 'Courier New', monospace; background: var(--bg-card);
+        border: 1px solid var(--border); padding: 2px 7px;
+        border-radius: 5px; font-size: 13px; color: var(--accent-2);
+    }
+
+    .info-box {
+        background: var(--bg-soft); border: 1px solid var(--border);
+        border-left: 3px solid var(--accent); border-radius: 8px;
+        padding: 16px 20px; margin: 16px 0;
+        transition: border-color 0.3s, transform 0.3s, background 0.3s;
+    }
+    .info-box:hover {
+        border-left-color: var(--accent-2); background: var(--bg-card);
+        transform: translateX(3px);
+    }
+    .info-box.green { border-left-color: var(--success); }
+    .info-box.green:hover { border-left-color: #6ee7a0; }
+    .info-box.red { border-left-color: var(--error); }
+    .info-box.red:hover { border-left-color: #ff8a8a; }
+    .info-box.yellow { border-left-color: var(--accent-2); }
+
+    .bigtable { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+    .bigtable > tbody > tr > td { vertical-align: top; padding: 0 4px; width: 50%; }
+    .bigtable table {
+        width: 100%; border-collapse: separate; border-spacing: 0;
+        background: var(--bg-soft); border: 1px solid var(--border);
+        border-radius: 10px; overflow: hidden;
+    }
+    .bigtable th {
+        background: var(--bg-card); color: var(--text-mid);
+        font-weight: 700; padding: 10px 12px; text-align: left;
+        font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase;
+        border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    .bigtable .th {
+        background: var(--bg); color: var(--accent); font-weight: 700;
+        padding: 8px 12px; font-size: 12px; letter-spacing: 1px;
+        text-transform: uppercase; border-bottom: 1px solid var(--border);
+        cursor: default;
+    }
+    .bigtable .dt {
+        padding: 7px 12px; border-bottom: 1px solid var(--border);
+        font-size: 13px; cursor: pointer;
+        transition: all 0.25s ease; font-weight: 500;
+    }
+    .bigtable td:nth-child(2),
+    .bigtable td:nth-child(3) {
+        padding: 7px 12px; border-bottom: 1px solid var(--border);
+        font-family: 'Courier New', monospace; font-size: 12px;
+        color: var(--text-mid);
+        transition: color 0.3s ease, text-shadow 0.3s ease;
+    }
+    .bigtable tbody tr { transition: filter 0.35s ease, opacity 0.35s ease; will-change: filter; }
+    .bigtable tbody tr:hover { filter: brightness(1.18) saturate(1.15); }
+    .bigtable tbody tr:hover .dt { text-decoration: underline; text-underline-offset: 3px; }
+    .bigtable tbody tr:hover td:nth-child(2),
+    .bigtable tbody tr:hover td:nth-child(3) {
+        color: #fff;
+        text-shadow: 0 0 6px rgba(255,255,255,0.35);
+    }
+    .bigtable tr.w td { color: #fff; }
+    .bigtable tr.w .dt { color: #fff; }
+    .bigtable tr.b td { color: #111; }
+    .bigtable tr.b .dt { color: #111; }
+    .bigtable tr.b td:nth-child(2),
+    .bigtable tr.b td:nth-child(3) { color: rgba(0,0,0,0.65); }
+    .bigtable tr.w td:nth-child(2),
+    .bigtable tr.w td:nth-child(3) { color: rgba(255,255,255,0.75); }
+
+    .live-demo {
+        background: var(--bg-soft); border: 1px solid var(--border);
+        border-radius: 12px; padding: 22px 24px; margin: 16px 0;
+        transition: border-color 0.3s;
+    }
+    .live-demo:hover { border-color: var(--border-hi); }
+    .live-demo label {
+        display: block; font-size: 12px; color: var(--text-dim);
+        text-transform: uppercase; letter-spacing: 1px;
+        margin-bottom: 10px; font-weight: 600;
+    }
+    .live-input {
+        width: 100%; padding: 12px 16px; background: var(--bg);
+        border: 1px solid var(--border); border-radius: 8px;
+        color: var(--text); font-family: 'Courier New', monospace;
+        font-size: 15px; outline: none;
+        transition: all 0.25s ease;
+    }
+    .live-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(255,92,92,0.15);
+    }
+    .live-preview-box {
+        margin-top: 16px; padding: 22px; background: var(--bg);
+        border: 1px solid var(--border); border-radius: 8px;
+        text-align: center;
+        transition: border-color 0.3s;
+    }
+    .live-preview-box:hover { border-color: var(--border-hi); }
+    .live-preview-box .preview-label {
+        font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+        letter-spacing: 1.2px; margin-bottom: 10px; font-weight: 600;
+    }
+    .live-preview-text {
+        font-size: 30px; font-weight: 800; min-height: 42px;
+        word-break: break-word;
+    }
+
+    .color-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 10px; margin: 16px 0;
+    }
+    .color-card {
+        background: var(--bg-soft); border: 1px solid var(--border);
+        border-radius: 10px; padding: 16px 18px; cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative; overflow: hidden;
+    }
+    .color-card::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(135deg, rgba(255,92,92,0.08), transparent 60%);
+        opacity: 0; transition: opacity 0.3s;
+    }
+    .color-card:hover {
+        border-color: var(--accent); transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    }
+    .color-card:hover::before { opacity: 1; }
+    .color-card:active { transform: translateY(-2px) scale(0.99); }
+    .color-card .preview {
+        font-size: 22px; font-weight: 800; text-align: center;
+        padding: 8px 0; margin-bottom: 10px;
+        position: relative; z-index: 1;
+    }
+    .color-card .code-line {
+        font-family: 'Courier New', monospace; font-size: 11px;
+        color: var(--text-dim); background: var(--bg);
+        border: 1px solid var(--border); padding: 6px 10px;
+        border-radius: 6px; overflow: hidden; text-overflow: ellipsis;
+        white-space: nowrap; position: relative; z-index: 1;
+    }
+    .color-card .copy-state {
+        position: absolute; top: 10px; right: 12px; font-size: 11px;
+        color: var(--success); font-weight: 700; opacity: 0;
+        transition: opacity 0.25s, transform 0.25s; transform: scale(0.7);
+        z-index: 2;
+    }
+    .color-card.copied .copy-state { opacity: 1; transform: scale(1); }
+    .color-card.copied { border-color: var(--success); }
+
+    .qa-item {
+        background: var(--bg-soft); border: 1px solid var(--border);
+        border-radius: 10px; margin-bottom: 8px; overflow: hidden;
+        transition: border-color 0.3s ease;
+    }
+    .qa-item:hover { border-color: var(--border-hi); }
+    .qa-item.open { border-color: var(--accent); }
+    .qa-q {
+        padding: 14px 18px; cursor: pointer; font-weight: 600;
+        font-size: 15px; display: flex; justify-content: space-between;
+        align-items: center; gap: 16px;
+        transition: background 0.25s;
+    }
+    .qa-q:hover { background: var(--bg-card); }
+    .qa-q .arrow {
+        font-size: 18px; color: var(--accent);
+        transition: transform 0.3s ease; flex-shrink: 0;
+    }
+    .qa-item.open .qa-q .arrow { transform: rotate(180deg); }
+    .qa-a {
+        height: 0; overflow: hidden;
+        transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--text-mid); font-size: 14px;
+    }
+    .qa-a-inner { padding: 4px 18px 16px; }
+    .qa-a-inner p { margin-bottom: 10px; color: var(--text-mid); }
+    .qa-a-inner ol, .qa-a-inner ul { margin: 0 0 10px 22px; }
+    .qa-a-inner li { color: var(--text-mid); }
+
+    .games-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px; margin: 16px 0;
+    }
+    .game-card {
+        background: var(--bg-soft); border: 1px solid var(--border);
+        border-radius: 10px; overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex; flex-direction: column;
+    }
+    .game-card:hover {
+        border-color: var(--accent-2); transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+    }
+    .game-card .game-img {
+        width: 100%; aspect-ratio: 16 / 9;
+        background: linear-gradient(135deg, var(--bg), var(--bg-card));
+        position: relative; overflow: hidden;
+        border-bottom: 1px solid var(--border);
+    }
+    .game-card .game-img img {
+        width: 100%; height: 100%;
+        object-fit: cover; display: block;
+        transition: transform 0.5s ease;
+    }
+    .game-card:hover .game-img img { transform: scale(1.05); }
+    .game-card .game-img .game-img-fallback {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column; color: var(--text-dim);
+        font-size: 12px; gap: 6px; padding: 12px; text-align: center;
+    }
+    .game-card .game-img .game-img-fallback .icon {
+        font-size: 28px; opacity: 0.5;
+    }
+    .game-card .game-img .game-img-fallback code {
+        font-size: 10px; padding: 2px 6px;
+    }
+    .game-card .game-body {
+        padding: 16px 18px 18px;
+        display: flex; flex-direction: column; flex-grow: 1;
+    }
+    .game-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .game-card p { font-size: 13px; color: var(--text-mid); margin-bottom: 12px; flex-grow: 1; }
+    .game-card .game-code {
+        display: block; background: var(--bg); border: 1px solid var(--border);
+        padding: 7px 10px; border-radius: 6px; font-size: 12px;
+        color: var(--accent-2); overflow: hidden; text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: 'Courier New', monospace;
+    }
+    .game-tag {
+        display: inline-block; font-size: 10px; padding: 2px 8px;
+        background: rgba(255,179,71,0.1); color: var(--accent-2);
+        border: 1px solid rgba(255,179,71,0.25); border-radius: 100px;
+        margin-bottom: 10px; text-transform: uppercase;
+        letter-spacing: 0.8px; font-weight: 600;
+        align-self: flex-start;
+    }
+
+    pre {
+        background: #0b0b10; border: 1px solid var(--border);
+        border-radius: 10px; padding: 18px 20px; overflow-x: auto;
+        font-family: 'Courier New', monospace; font-size: 13px;
+        line-height: 1.6; margin: 14px 0; color: #d4d4e0;
+        transition: border-color 0.3s;
+    }
+    pre:hover { border-color: var(--border-hi); }
+    pre .kw { color: #c792ea; }
+    pre .type { color: #ffcb6b; }
+    pre .cm { color: #6e6e80; font-style: italic; }
+    pre .str { color: #a5e075; }
+
+    #footer {
+        text-align: center; padding: 30px 0 0; margin-top: 50px;
+        border-top: 1px solid var(--border); font-size: 13px;
+        color: var(--text-dim);
+    }
+    #footer .heart {
+        color: var(--accent); display: inline-block;
+        animation: beat 1.6s ease-in-out infinite;
+    }
+    @keyframes beat {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+    }
+
+    .toast {
+        position: fixed; bottom: 24px; left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--accent); color: #fff; padding: 12px 24px;
+        border-radius: 100px; font-size: 14px; font-weight: 700;
+        box-shadow: 0 12px 30px rgba(255,92,92,0.4);
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        z-index: 999;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .reveal {
+        opacity: 0; transform: translateY(20px);
+        transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: opacity, transform;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal.delay-1 { transition-delay: 0.06s; }
+    .reveal.delay-2 { transition-delay: 0.12s; }
+    .reveal.delay-3 { transition-delay: 0.18s; }
+
+    .tab-btn, .info-box, .color-card, .game-card, .qa-item, .qa-q,
+    .live-input, .live-preview-box, .code-line, pre, .game-tag, code {
+        transition: background-color 0.3s ease,
+                    border-color 0.3s ease,
+                    color 0.3s ease,
+                    box-shadow 0.3s ease,
+                    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @media (max-width: 640px) {
+        body { font-size: 14px; }
+        .tab-btn { padding: 8px 12px; font-size: 12px; }
+        h1 { font-size: 21px; }
+        h2 { font-size: 17px; }
+        .bigtable > tbody > tr > td { display: block; width: 100%; padding: 0 0 12px; }
+        .live-preview-text { font-size: 22px; }
+        .color-grid { grid-template-columns: 1fr 1fr; }
+        .games-grid { grid-template-columns: 1fr; }
+        .banner-wrap img { max-height: 200px; }
+        .lang-switch { top: 14px; right: 14px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="lang-overlay" id="langOverlay">
+    <div class="lang-stage" id="langStage">
+        <div class="lang-box">
+            <div class="lang-title" id="langOverlayTitle">Choose your language</div>
+            <div class="lang-options">
+                <button class="lang-btn" data-lang="ru" data-preview="ru">
+                    <span class="flag">🇷🇺</span>
+                    <span class="info">
+                        <span class="name">Русский</span>
+                        <span class="native">Russian</span>
+                    </span>
+                </button>
+                <button class="lang-btn" data-lang="en" data-preview="en">
+                    <span class="flag">🇺🇸</span>
+                    <span class="info">
+                        <span class="name">English</span>
+                        <span class="native">Английский</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+        <div class="lang-preview" id="langPreview">
+            <span class="pv-flag" id="pvFlag">🇷🇺</span>
+            <div class="pv-name" id="pvName">Русский</div>
+            <div class="pv-sub">
+                <span id="pvDesc">Сайт будет на русском языке.</span>
+                <br>
+                <button class="lang-switch-btn" id="pvConfirm" type="button">Выбрать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="lang-switch">
+    <button data-lang-switch="ru">RU</button>
+    <button data-lang-switch="en">EN</button>
+</div>
+
+<div id="content">
+
+    <div id="logo">
+        <div class="logo-img-wrap">
+            <img src="images/logo.png" alt="ColorNick" onerror="this.parentElement.classList.add('img-placeholder'); this.style.display='none';">
+            <span class="logo-fallback">🎨</span>
+        </div>
+        <a href="#">Color<span>Nick</span></a>
+    </div>
+    <div id="title" data-i18n="tagline">· гайд по цветным никам для игроков ·</div>
+
+    <div class="banner-wrap reveal">
+        <img src="images/banner.png" alt="Banner" onerror="this.parentElement.classList.add('img-placeholder'); this.style.display='none';">
+        <div class="banner-fallback">
+            <span class="icon">🖼️</span>
+            <span data-i18n="bannerHint">Здесь будет баннер. Загрузи картинку как</span> <code>images/banner.png</code>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="guide" data-i18n="tabGuide">Как это сделать</button>
+        <button class="tab-btn" data-tab="examples" data-i18n="tabExamples">Цвета</button>
+        <button class="tab-btn" data-tab="qa" data-i18n="tabQa">Вопросы</button>
+        <button class="tab-btn" data-tab="games" data-i18n="tabGames">Игры</button>
+        <button class="tab-btn" data-tab="table" data-i18n="tabTable">Таблица цветов</button>
+        <button class="tab-btn" data-tab="dev" data-i18n="tabDev">Разработчикам</button>
+        <button class="tab-btn" data-tab="about" data-i18n="tabAbout">О сайте</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-guide">
+        <h1 class="reveal" data-i18n="guideTitle">Как сделать цветной ник в игре</h1>
+        <p class="reveal" data-i18n="guideP1">Представь: ты зашёл в игру — например, в Chicken Gun. Играешь себе спокойно, и вдруг залетает чел с жёлтым ником. Ты такой: «интересно, как он это сделал? читы наверное». А реальность намного проще, чем тебе кажется, дружок 😎</p>
+        <p class="reveal delay-1" data-i18n="guideP2">Работает это так: пишешь в поле ника не просто своё имя, а добавляешь к нему маленькую «команду» — тег. Игра читает этот тег и красит текст. Никаких читов, никаких взломов, всё честно.</p>
+        <div class="info-box yellow reveal delay-2">
+            <b data-i18n="guideWarnB">Сразу предупрежу:</b>
+            <span data-i18n="guideWarnT"> работает не везде. Если разработчик отключил эту функцию (а некоторые отключают — чтобы никто не спамил и не ломал чат), то ничего не выйдет. Но попробовать стоит — это займёт 10 секунд.</span>
+        </div>
+        <h2 class="reveal" data-i18n="guideStepsH">Погнали по шагам</h2>
+        <p class="reveal" data-i18n-html="guideStep1"><b>1.</b> Открываешь настройки профиля или то место, где меняется ник. В большинстве игр это «Профиль» → «Изменить имя», либо прямо на входе в игру.</p>
+        <p class="reveal" data-i18n-html="guideStep2"><b>2.</b> Вместо обычного <code>Vasya</code> пишешь вот такую штуку:</p>
+        <div class="reveal" style="text-align:center; margin: 18px 0;">
+            <code style="font-size:16px; padding: 10px 18px; display: inline-block;">&lt;color=red&gt;Vasya&lt;/color&gt;</code>
+        </div>
+        <div class="img-wrap reveal">
+            <img src="images/example-nick.png" alt="Example" onerror="this.parentElement.classList.add('img-placeholder'); this.style.display='none';">
+            <div class="img-fallback">
+                <span class="icon">📸</span>
+                <span data-i18n="guideImgHint">Сюда — скриншот из игры с цветным ником. Загрузи как</span>
+                <code>images/example-nick.png</code>
+            </div>
+        </div>
+        <p class="img-caption reveal" data-i18n="guideImgCaption">Так твой ник будет выглядеть в игре</p>
+        <p class="reveal" data-i18n="guideStep3"><b>3.</b> Сохраняешь. Если игра поддерживает — ник сразу станет красным. Причём увидят его таким все: и в лобби, и в чате, и над головой твоего персонажа в бою.</p>
+        <p class="reveal" data-i18n="guideStep4">Всё. Ничего больше делать не надо.</p>
+        <h2 class="reveal" data-i18n="guideErrorH">Самая частая ошибка</h2>
+        <p class="reveal" data-i18n-html="guideErrorP">Обычно люди пишут так: <code>&lt;color=red&gt;Vasya</code> — и забывают закрыть тег в конце. Или закрывают неправильно, повторяя открывающий. В итоге получается либо вообще ничего, либо — что хуже — цвет «утекает» на весь чат. Все сообщения становятся красными, а ты сидишь и не понимаешь, что натворил.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0;" class="reveal">
+            <div class="info-box red" style="margin:0;">
+                <b style="color:var(--error);" data-i18n="guideBadB">❌ Не работает</b><br>
+                <code>&lt;color=red&gt;Vasya&lt;color=red&gt;</code>
+                <p class="muted" style="margin-top:8px; margin-bottom:0;" data-i18n="guideBadT">Цвет зальёт всё, что идёт после тебя.</p>
+            </div>
+            <div class="info-box green" style="margin:0;">
+                <b style="color:var(--success);" data-i18n="guideGoodB">✅ Работает</b><br>
+                <code>&lt;color=red&gt;Vasya&lt;/color&gt;</code>
+                <p class="muted" style="margin-top:8px; margin-bottom:0;" data-i18n="guideGoodT">Обрати внимание на слэш в конце. Он обязателен.</p>
+            </div>
+        </div>
+        <p class="reveal" data-i18n-html="guideRemember"><b>открыл — обязательно закрой.</b> Как скобки в математике. Открывающий тег <code>&lt;color=...&gt;</code> идёт до ника, закрывающий <code>&lt;/color&gt;</code> — после.</p>
+        <h2 class="reveal" data-i18n="guideTryH">Проверь прямо сейчас</h2>
+        <p class="reveal" data-i18n="guideTryP">Введи что-нибудь в поле ниже — увидишь, как это будет выглядеть в игре:</p>
+        <div class="live-demo reveal">
+            <label data-i18n="guideTryLabel">Пиши сюда свой ник с тегами</label>
+            <input type="text" class="live-input" id="liveInput" value="&lt;color=red&gt;Vasya&lt;/color&gt;">
+            <div class="live-preview-box">
+                <div class="preview-label" data-i18n="guideTryPreview">Так увидят тебя другие игроки</div>
+                <div class="live-preview-text" id="livePreview"><span style="color:red">Vasya</span></div>
+            </div>
+        </div>
+        <h2 class="reveal" data-i18n="guideMoreH">Что ещё можно делать с ником</h2>
+        <p class="reveal" data-i18n="guideMoreP">Кроме цвета — есть ещё пара трюков, которые работают по той же системе. Например, сделать ник жирным или наклонным:</p>
+        <div class="reveal" style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:separate; border-spacing:0; font-size:13px; margin:10px 0; background:var(--bg-soft); border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+                <thead>
+                    <tr style="background:var(--bg-card);">
+                        <th style="padding:10px 14px; text-align:left; color:var(--text-mid); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;" data-i18n="guideMoreTh1">Что пишешь</th>
+                        <th style="padding:10px 14px; text-align:left; color:var(--text-mid); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;" data-i18n="guideMoreTh2">Что получится</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="padding:8px 14px; border-top:1px solid var(--border);"><code>&lt;b&gt;Ник&lt;/b&gt;</code></td><td style="padding:8px 14px; border-top:1px solid var(--border);"><b data-i18n="guideMoreB">Жирный ник</b></td></tr>
+                    <tr><td style="padding:8px 14px; border-top:1px solid var(--border);"><code>&lt;i&gt;Ник&lt;/i&gt;</code></td><td style="padding:8px 14px; border-top:1px solid var(--border);"><i data-i18n="guideMoreI">Курсивный ник</i></td></tr>
+                    <tr><td style="padding:8px 14px; border-top:1px solid var(--border);"><code>&lt;size=30&gt;Ник&lt;/size&gt;</code></td><td style="padding:8px 14px; border-top:1px solid var(--border);"><span style="font-size:20px;" data-i18n="guideMoreS">Большой ник</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="reveal" data-i18n="guideCombineP">И это можно комбинировать. Например, жирный красный ник будет выглядеть так:</p>
+        <div class="reveal" style="text-align:center; margin: 16px 0;">
+            <code style="font-size:14px; padding:10px 18px; display:inline-block;">&lt;b&gt;&lt;color=red&gt;Vasya&lt;/color&gt;&lt;/b&gt;</code>
+        </div>
+        <p class="reveal" data-i18n-html="guideCombineRule">Правило то же — каждый тег, который открыл, надо закрыть. Причём в обратном порядке. Открыл <code>&lt;b&gt;</code>, потом <code>&lt;color&gt;</code> — закрываешь сначала <code>&lt;/color&gt;</code>, потом <code>&lt;/b&gt;</code>.</p>
+    </div>
+
+    <div class="tab-panel" id="tab-examples">
+        <h1 class="reveal" data-i18n="exTitle">Готовые цвета для ника</h1>
+        <p class="reveal" data-i18n="exP1">Тыкай по любой карточке — код сразу скопируется в буфер. Потом просто замени ТвойНик на своё имя и вставь в игру.</p>
+        <div class="color-grid" id="colorGrid"></div>
+        <div class="info-box reveal" style="margin-top: 22px;">
+            <b data-i18n="exHexB">А если хочется какой-то необычный цвет — например, свой оттенок?</b>
+            <p class="muted" style="margin-top:8px; margin-bottom:0;" data-i18n-html="exHexT">Тогда используется HEX-код. Выглядит это так: <code>&lt;color=#FF5733&gt;ТвойНик&lt;/color&gt;</code>. Код можно взять в таблице цветов (вкладка выше) или на любом сайте с палитрами.</p>
+        </div>
+        <h2 class="reveal" data-i18n="exComboH">Как сочетать цвета</h2>
+        <p class="reveal" data-i18n="exComboP">Если игра разрешает длинные ники — можно вообще разбить ник на части и покрасить каждую в свой цвет. Выглядит вот так:</p>
+        <div class="reveal" style="background: var(--bg-soft); border:1px solid var(--border); border-radius:10px; padding:20px; text-align:center; margin:14px 0;">
+            <div style="font-size:22px; font-weight:800; margin-bottom:12px;">
+                <span style="color:#ff5c5c;">Крас</span><span style="color:#ffb347;">но</span><span style="color:#4ade80;">Синий</span>
+            </div>
+            <code style="font-size:12px;">&lt;color=red&gt;Крас&lt;/color&gt;&lt;color=orange&gt;но&lt;/color&gt;&lt;color=green&gt;Синий&lt;/color&gt;</code>
+        </div>
+    </div>
+
+    <div class="tab-panel" id="tab-qa">
+        <h1 class="reveal" data-i18n="qaTitle">Частые вопросы</h1>
+        <p class="reveal muted" data-i18n="qaSub">Собрал тут то, что чаще всего спрашивают в чатах и на форумах.</p>
+        <div id="qaList"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-games">
+        <h1 class="reveal" data-i18n="gamesTitle">Где это работает</h1>
+        <p class="reveal muted" data-i18n="gamesSub">Список игр на Unity, где игроки реально используют эту фишку. Но учти — с обновлениями разработчики иногда её выключают.</p>
+        <div class="games-grid" id="gamesGrid"></div>
+        <div class="info-box yellow reveal" style="margin-top: 20px;">
+            <b data-i18n="gamesNotFoundB">Не нашёл свою игру?</b>
+            <p class="muted" style="margin-top:8px; margin-bottom:0;" data-i18n-html="gamesNotFoundT">Просто попробуй ввести тег и посмотреть, что будет. Хуже точно не станет. Если игра показала ник как есть (с символами <code>&lt; &gt;</code>) — значит фишка отключена.</p>
+        </div>
+    </div>
+
+    <div class="tab-panel" id="tab-table">
+        <h1 class="reveal" data-i18n="tableTitle">Таблица HTML цветов</h1>
+        <p class="reveal muted" data-i18n-html="tableSub">Тут собраны все 147 стандартных названий цветов. Клик по строке — копируется готовый код <code>&lt;color=Имя&gt;ТвойНик&lt;/color&gt;</code>.</p>
+        <div class="bigtable reveal">
+            <table>
+                <tbody>
+                <tr>
+                    <td>
+                        <table>
+                            <tbody>
+                            <tr><th data-i18n="tableColName">Имя цвета</th><th>HEX</th><th>RGB</th></tr>
+                            <tr><td colspan="3" class="th" data-i18n="tableRed">Красные и розовые</td></tr>
+                            <tr bgcolor="CD5C5C" class="w"><td class="dt">IndianRed</td><td>#CD5C5C</td><td>205, 92, 92</td></tr>
+                            <tr bgcolor="F08080" class="b"><td class="dt">LightCoral</td><td>#F08080</td><td>240, 128, 128</td></tr>
+                            <tr bgcolor="FA8072" class="b"><td class="dt">Salmon</td><td>#FA8072</td><td>250, 128, 114</td></tr>
+                            <tr bgcolor="E9967A" class="b"><td class="dt">DarkSalmon</td><td>#E9967A</td><td>233, 150, 122</td></tr>
+                            <tr bgcolor="FFA07A" class="b"><td class="dt">LightSalmon</td><td>#FFA07A</td><td>255, 160, 122</td></tr>
+                            <tr bgcolor="DC143C" class="w"><td class="dt">Crimson</td><td>#DC143C</td><td>220, 20, 60</td></tr>
+                            <tr bgcolor="ff0000" class="w"><td class="dt">Red</td><td>#FF0000</td><td>255, 0, 0</td></tr>
+                            <tr bgcolor="B22222" class="w"><td class="dt">FireBrick</td><td>#B22222</td><td>178, 34, 34</td></tr>
+                            <tr bgcolor="8B0000" class="w"><td class="dt">DarkRed</td><td>#8B0000</td><td>139, 0, 0</td></tr>
+                            <tr bgcolor="FFC0CB" class="b"><td class="dt">Pink</td><td>#FFC0CB</td><td>255, 192, 203</td></tr>
+                            <tr bgcolor="FFB6C1" class="b"><td class="dt">LightPink</td><td>#FFB6C1</td><td>255, 182, 193</td></tr>
+                            <tr bgcolor="FF69B4" class="w"><td class="dt">HotPink</td><td>#FF69B4</td><td>255, 105, 180</td></tr>
+                            <tr bgcolor="FF1493" class="w"><td class="dt">DeepPink</td><td>#FF1493</td><td>255, 20, 147</td></tr>
+                            <tr bgcolor="C71585" class="w"><td class="dt">MediumVioletRed</td><td>#C71585</td><td>199, 21, 133</td></tr>
+                            <tr bgcolor="DB7093" class="w"><td class="dt">PaleVioletRed</td><td>#DB7093</td><td>219, 112, 147</td></tr>
+
+                            <tr><td colspan="3" class="th" data-i18n="tableOrange">Оранжевые и жёлтые</td></tr>
+                            <tr bgcolor="FF7F50" class="b"><td class="dt">Coral</td><td>#FF7F50</td><td>255, 127, 80</td></tr>
+                            <tr bgcolor="FF6347" class="b"><td class="dt">Tomato</td><td>#FF6347</td><td>255, 99, 71</td></tr>
+                            <tr bgcolor="FF4500" class="b"><td class="dt">OrangeRed</td><td>#FF4500</td><td>255, 69, 0</td></tr>
+                            <tr bgcolor="FF8C00" class="b"><td class="dt">DarkOrange</td><td>#FF8C00</td><td>255, 140, 0</td></tr>
+                            <tr bgcolor="FFA500" class="b"><td class="dt">Orange</td><td>#FFA500</td><td>255, 165, 0</td></tr>
+                            <tr bgcolor="FFD700" class="b"><td class="dt">Gold</td><td>#FFD700</td><td>255, 215, 0</td></tr>
+                            <tr bgcolor="ffff00" class="b"><td class="dt">Yellow</td><td>#FFFF00</td><td>255, 255, 0</td></tr>
+                            <tr bgcolor="FFFFE0" class="b"><td class="dt">LightYellow</td><td>#FFFFE0</td><td>255, 255, 224</td></tr>
+                            <tr bgcolor="FFFACD" class="b"><td class="dt">LemonChiffon</td><td>#FFFACD</td><td>255, 250, 205</td></tr>
+                            <tr bgcolor="FFE4B5" class="b"><td class="dt">Moccasin</td><td>#FFE4B5</td><td>255, 228, 181</td></tr>
+                            <tr bgcolor="FFDAB9" class="b"><td class="dt">PeachPuff</td><td>#FFDAB9</td><td>255, 218, 185</td></tr>
+                            <tr bgcolor="F0E68C" class="b"><td class="dt">Khaki</td><td>#F0E68C</td><td>240, 230, 140</td></tr>
+                            <tr bgcolor="BDB76B" class="b"><td class="dt">DarkKhaki</td><td>#BDB76B</td><td>189, 183, 107</td></tr>
+
+                            <tr><td colspan="3" class="th" data-i18n="tablePurple">Фиолетовые</td></tr>
+                            <tr bgcolor="E6E6FA" class="b"><td class="dt">Lavender</td><td>#E6E6FA</td><td>230, 230, 250</td></tr>
+                            <tr bgcolor="D8BFD8" class="b"><td class="dt">Thistle</td><td>#D8BFD8</td><td>216, 191, 216</td></tr>
+                            <tr bgcolor="DDA0DD" class="b"><td class="dt">Plum</td><td>#DDA0DD</td><td>221, 160, 221</td></tr>
+                            <tr bgcolor="EE82EE" class="b"><td class="dt">Violet</td><td>#EE82EE</td><td>238, 130, 238</td></tr>
+                            <tr bgcolor="DA70D6" class="w"><td class="dt">Orchid</td><td>#DA70D6</td><td>218, 112, 214</td></tr>
+                            <tr bgcolor="ff00ff" class="w"><td class="dt">Fuchsia</td><td>#FF00FF</td><td>255, 0, 255</td></tr>
+                            <tr bgcolor="ff00ff" class="w"><td class="dt">Magenta</td><td>#FF00FF</td><td>255, 0, 255</td></tr>
+                            <tr bgcolor="BA55D3" class="w"><td class="dt">MediumOrchid</td><td>#BA55D3</td><td>186, 85, 211</td></tr>
+                            <tr bgcolor="9370DB" class="w"><td class="dt">MediumPurple</td><td>#9370DB</td><td>147, 112, 219</td></tr>
+                            <tr bgcolor="8A2BE2" class="w"><td class="dt">BlueViolet</td><td>#8A2BE2</td><td>138, 43, 226</td></tr>
+                            <tr bgcolor="9400D3" class="w"><td class="dt">DarkViolet</td><td>#9400D3</td><td>148, 0, 211</td></tr>
+                            <tr bgcolor="9932CC" class="w"><td class="dt">DarkOrchid</td><td>#9932CC</td><td>153, 50, 204</td></tr>
+                            <tr bgcolor="8B008B" class="w"><td class="dt">DarkMagenta</td><td>#8B008B</td><td>139, 0, 139</td></tr>
+                            <tr bgcolor="800080" class="w"><td class="dt">Purple</td><td>#800080</td><td>128, 0, 128</td></tr>
+                            <tr bgcolor="4B0082" class="w"><td class="dt">Indigo</td><td>#4B0082</td><td>75, 0, 130</td></tr>
+                            <tr bgcolor="6A5ACD" class="w"><td class="dt">SlateBlue</td><td>#6A5ACD</td><td>106, 90, 205</td></tr>
+                            <tr bgcolor="483D8B" class="w"><td class="dt">DarkSlateBlue</td><td>#483D8B</td><td>72, 61, 139</td></tr>
+
+                            <tr><td colspan="3" class="th" data-i18n="tableBrown">Коричневые</td></tr>
+                            <tr bgcolor="FFF8DC" class="b"><td class="dt">Cornsilk</td><td>#FFF8DC</td><td>255, 248, 220</td></tr>
+                            <tr bgcolor="F5DEB3" class="b"><td class="dt">Wheat</td><td>#F5DEB3</td><td>245, 222, 179</td></tr>
+                            <tr bgcolor="DEB887" class="b"><td class="dt">BurlyWood</td><td>#DEB887</td><td>222, 184, 135</td></tr>
+                            <tr bgcolor="D2B48C" class="b"><td class="dt">Tan</td><td>#D2B48C</td><td>210, 180, 140</td></tr>
+                            <tr bgcolor="F4A460" class="w"><td class="dt">SandyBrown</td><td>#F4A460</td><td>244, 164, 96</td></tr>
+                            <tr bgcolor="DAA520" class="w"><td class="dt">Goldenrod</td><td>#DAA520</td><td>218, 165, 32</td></tr>
+                            <tr bgcolor="CD853F" class="w"><td class="dt">Peru</td><td>#CD853F</td><td>205, 133, 63</td></tr>
+                            <tr bgcolor="D2691E" class="w"><td class="dt">Chocolate</td><td>#D2691E</td><td>210, 105, 30</td></tr>
+                            <tr bgcolor="8B4513" class="w"><td class="dt">SaddleBrown</td><td>#8B4513</td><td>139, 69, 19</td></tr>
+                            <tr bgcolor="A0522D" class="w"><td class="dt">Sienna</td><td>#A0522D</td><td>160, 82, 45</td></tr>
+                            <tr bgcolor="A52A2A" class="w"><td class="dt">Brown</td><td>#A52A2A</td><td>165, 42, 42</td></tr>
+                            <tr bgcolor="800000" class="w"><td class="dt">Maroon</td><td>#800000</td><td>128, 0, 0</td></tr>
+                            </tbody>
+                        </table>
+                    </td>
+                    <td>
+                        <table>
+                            <tbody>
+                            <tr><th data-i18n="tableColName2">Имя цвета</th><th>HEX</th><th>RGB</th></tr>
+
+                            <tr><td colspan="3" class="th" data-i18n="tableGreen">Зелёные</td></tr>
+                            <tr bgcolor="ADFF2F" class="b"><td class="dt">GreenYellow</td><td>#ADFF2F</td><td>173, 255, 47</td></tr>
+                            <tr bgcolor="7FFF00" class="b"><td class="dt">Chartreuse</td><td>#7FFF00</td><td>127, 255, 0</td></tr>
+                            <tr bgcolor="7CFC00" class="b"><td class="dt">LawnGreen</td><td>#7CFC00</td><td>124, 252, 0</td></tr>
+                            <tr bgcolor="00ff00" class="b"><td class="dt">Lime</td><td>#00FF00</td><td>0, 255, 0</td></tr>
+                            <tr bgcolor="32CD32" class="b"><td class="dt">LimeGreen</td><td>#32CD32</td><td>50, 205, 50</td></tr>
+                            <tr bgcolor="98FB98" class="b"><td class="dt">PaleGreen</td><td>#98FB98</td><td>152, 251, 152</td></tr>
+                            <tr bgcolor="90EE90" class="b"><td class="dt">LightGreen</td><td>#90EE90</td><td>144, 238, 144</td></tr>
+                            <tr bgcolor="00FF7F" class="b"><td class="dt">SpringGreen</td><td>#00FF7F</td><td>0, 255, 127</td></tr>
+                            <tr bgcolor="3CB371" class="w"><td class="dt">MediumSeaGreen</td><td>#3CB371</td><td>60, 179, 113</td></tr>
+                            <tr bgcolor="2E8B57" class="w"><td class="dt">SeaGreen</td><td>#2E8B57</td><td>46, 139, 87</td></tr>
+                            <tr bgcolor="228B22" class="w"><td class="dt">ForestGreen</td><td>#228B22</td><td>34, 139, 34</td></tr>
+                            <tr bgcolor="008000" class="w"><td class="dt">Green</td><td>#008000</td><td>0, 128, 0</td></tr>
+                            <tr bgcolor="006400" class="w"><td class="dt">DarkGreen</td><td>#006400</td><td>0, 100, 0</td></tr>
+                            <tr bgcolor="9ACD32" class="b"><td class="dt">YellowGreen</td><td>#9ACD32</td><td>154, 205, 50</td></tr>
+                            <tr bgcolor="6B8E23" class="w"><td class="dt">OliveDrab</td><td>#6B8E23</td><td>107, 142, 35</td></tr>
+                            <tr bgcolor="808000" class="w"><td class="dt">Olive</td><td>#808000</td><td>128, 128, 0</td></tr>
+                            <tr bgcolor="556B2F" class="w"><td class="dt">DarkOliveGreen</td><td>#556B2F</td><td>85, 107, 47</td></tr>
+                            <tr bgcolor="66CDAA" class="b"><td class="dt">MediumAquamarine</td><td>#66CDAA</td><td>102, 205, 170</td></tr>
+                            <tr bgcolor="8FBC8F" class="b"><td class="dt">DarkSeaGreen</td><td>#8FBC8F</td><td>143, 188, 143</td></tr>
+                            <tr bgcolor="20B2AA" class="w"><td class="dt">LightSeaGreen</td><td>#20B2AA</td><td>32, 178, 170</td></tr>
+                            <tr bgcolor="008B8B" class="w"><td class="dt">DarkCyan</td><td>#008B8B</td><td>0, 139, 139</td></tr>
+                            <tr bgcolor="008080" class="w"><td class="dt">Teal</td><td>#008080</td><td>0, 128, 128</td></tr>
+
+                            <tr><td colspan="3" class="th" data-i18n="tableBlue">Синие и голубые</td></tr>
+                            <tr bgcolor="00ffff" class="b"><td class="dt">Aqua</td><td>#00FFFF</td><td>0, 255, 255</td></tr>
+                            <tr bgcolor="00ffff" class="b"><td class="dt">Cyan</td><td>#00FFFF</td><td>0, 255, 255</td></tr>
+                            <tr bgcolor="E0FFFF" class="b"><td class="dt">LightCyan</td><td>#E0FFFF</td><td>224, 255, 255</td></tr>
+                            <tr bgcolor="AFEEEE" class="b"><td class="dt">PaleTurquoise</td><td>#AFEEEE</td><td>175, 238, 238</td></tr>
+                            <tr bgcolor="7FFFD4" class="b"><td class="dt">Aquamarine</td><td>#7FFFD4</td><td>127, 255, 212</td></tr>
+                            <tr bgcolor="40E0D0" class="b"><td class="dt">Turquoise</td><td>#40E0D0</td><td>64, 224, 208</td></tr>
+                            <tr bgcolor="00CED1" class="b"><td class="dt">DarkTurquoise</td><td>#00CED1</td><td>0, 206, 209</td></tr>
+                            <tr bgcolor="5F9EA0" class="w"><td class="dt">CadetBlue</td><td>#5F9EA0</td><td>95, 158, 160</td></tr>
+                            <tr bgcolor="4682B4" class="w"><td class="dt">SteelBlue</td><td>#4682B4</td><td>70, 130, 180</td></tr>
+                            <tr bgcolor="B0C4DE" class="b"><td class="dt">LightSteelBlue</td><td>#B0C4DE</td><td>176, 196, 222</td></tr>
+                            <tr bgcolor="B0E0E6" class="b"><td class="dt">PowderBlue</td><td>#B0E0E6</td><td>176, 224, 230</td></tr>
+                            <tr bgcolor="ADD8E6" class="b"><td class="dt">LightBlue</td><td>#ADD8E6</td><td>173, 216, 230</td></tr>
+                            <tr bgcolor="87CEEB" class="b"><td class="dt">SkyBlue</td><td>#87CEEB</td><td>135, 206, 235</td></tr>
+                            <tr bgcolor="87CEFA" class="b"><td class="dt">LightSkyBlue</td><td>#87CEFA</td><td>135, 206, 250</td></tr>
+                            <tr bgcolor="00BFFF" class="b"><td class="dt">DeepSkyBlue</td><td>#00BFFF</td><td>0, 191, 255</td></tr>
+                            <tr bgcolor="1E90FF" class="w"><td class="dt">DodgerBlue</td><td>#1E90FF</td><td>30, 144, 255</td></tr>
+                            <tr bgcolor="6495ED" class="w"><td class="dt">CornflowerBlue</td><td>#6495ED</td><td>100, 149, 237</td></tr>
+                            <tr bgcolor="4169E1" class="w"><td class="dt">RoyalBlue</td><td>#4169E1</td><td>65, 105, 225</td></tr>
+                            <tr bgcolor="0000ff" class="w"><td class="dt">Blue</td><td>#0000FF</td><td>0, 0, 255</td></tr>
+                            <tr bgcolor="0000CD" class="w"><td class="dt">MediumBlue</td><td>#0000CD</td><td>0, 0, 205</td></tr>
+                            <tr bgcolor="00008B" class="w"><td class="dt">DarkBlue</td><td>#00008B</td><td>0, 0, 139</td></tr>
+                            <tr bgcolor="000080" class="w"><td class="dt">Navy</td><td>#000080</td><td>0, 0, 128</td></tr>
+                            <tr bgcolor="191970" class="w"><td class="dt">MidnightBlue</td><td>#191970</td><td>25, 25, 112</td></tr>
+
+                            <tr><td colspan="3" class="th" data-i18n="tableWhite">Белые оттенки</td></tr>
+                            <tr bgcolor="ffffff" class="b"><td class="dt">White</td><td>#FFFFFF</td><td>255, 255, 255</td></tr>
+                            <tr bgcolor="FFFAFA" class="b"><td class="dt">Snow</td><td>#FFFAFA</td><td>255, 250, 250</td></tr>
+                            <tr bgcolor="F0FFF0" class="b"><td class="dt">Honeydew</td><td>#F0FFF0</td><td>240, 255, 240</td></tr>
+                            <tr bgcolor="F5FFFA" class="b"><td class="dt">MintCream</td><td>#F5FFFA</td><td>245, 255, 250</td></tr>
+                            <tr bgcolor="F0FFFF" class="b"><td class="dt">Azure</td><td>#F0FFFF</td><td>240, 255, 255</td></tr>
+                            <tr bgcolor="F0F8FF" class="b"><td class="dt">AliceBlue</td><td>#F0F8FF</td><td>240, 248, 255</td></tr>
+                            <tr bgcolor="F5F5F5" class="b"><td class="dt">WhiteSmoke</td><td>#F5F5F5</td><td>245, 245, 245</td></tr>
+                            <tr bgcolor="F5F5DC" class="b"><td class="dt">Beige</td><td>#F5F5DC</td><td>245, 245, 220</td></tr>
+                            <tr bgcolor="FFFFF0" class="b"><td class="dt">Ivory</td><td>#FFFFF0</td><td>255, 255, 240</td></tr>
+
+                            <tr><td colspan="3" class="th" data-i18n="tableGray">Серые</td></tr>
+                            <tr bgcolor="DCDCDC" class="b"><td class="dt">Gainsboro</td><td>#DCDCDC</td><td>220, 220, 220</td></tr>
+                            <tr bgcolor="D3D3D3" class="b"><td class="dt">LightGray</td><td>#D3D3D3</td><td>211, 211, 211</td></tr>
+                            <tr bgcolor="C0C0C0" class="b"><td class="dt">Silver</td><td>#C0C0C0</td><td>192, 192, 192</td></tr>
+                            <tr bgcolor="A9A9A9" class="b"><td class="dt">DarkGray</td><td>#A9A9A9</td><td>169, 169, 169</td></tr>
+                            <tr bgcolor="808080" class="w"><td class="dt">Gray</td><td>#808080</td><td>128, 128, 128</td></tr>
+                            <tr bgcolor="696969" class="w"><td class="dt">DimGray</td><td>#696969</td><td>105, 105, 105</td></tr>
+                            <tr bgcolor="778899" class="w"><td class="dt">LightSlateGray</td><td>#778899</td><td>119, 136, 153</td></tr>
+                            <tr bgcolor="708090" class="w"><td class="dt">SlateGray</td><td>#708090</td><td>112, 128, 144</td></tr>
+                            <tr bgcolor="2F4F4F" class="w"><td class="dt">DarkSlateGray</td><td>#2F4F4F</td><td>47, 79, 79</td></tr>
+                            <tr bgcolor="000000" class="w"><td class="dt">Black</td><td>#000000</td><td>0, 0, 0</td></tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tab-panel" id="tab-dev">
+        <div id="devContent"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-about">
+        <h1 class="reveal" data-i18n="aboutTitle">О сайте</h1>
+        <p class="reveal muted" data-i18n="aboutSub">Пара слов о том, зачем это всё и для кого.</p>
+        <div class="img-wrap reveal">
+            <img src="images/about.png" alt="About" onerror="this.parentElement.classList.add('img-placeholder'); this.style.display='none';">
+            <div class="img-fallback">
+                <span class="icon">✨</span>
+                <span data-i18n="aboutImgHint">Сюда — картинку про проект. Загрузи как</span>
+                <code>images/about.png</code>
+            </div>
+        </div>
+        <p class="reveal" data-i18n="aboutP1">Этот сайт сделан для тех, кто заходит в игру, видит у кого-то цветной ник — и не понимает, как это вообще устроено. Для тех, кто не шарит в Unity, не знает, что такое Rich Text, и думает, что цветной ник — это читы, донат или админка. Спойлер: нет.</p>
+        <p class="reveal" data-i18n="aboutP2">Мы собрали всё в одном месте: как это делается, почему это работает, какие цвета можно использовать, где это точно сработает, а где нет. Без занудства, без «данный гайд представляет», без умных слов ради умных слов.</p>
+        <p class="reveal" data-i18n="aboutP3">Тут есть два уровня:</p>
+        <ul class="reveal">
+            <li data-i18n-html="aboutL1"><b>Для игроков</b> — пошаговый гайд, примеры цветов, Q&A на частые вопросы, список игр где это работает.</li>
+            <li data-i18n-html="aboutL2"><b>Для разработчиков</b> — разбор под капотом: как TMP парсит теги, почему string не летит по сети, как синхронизировать ник в мультиплеере.</li>
+        </ul>
+        <div class="info-box yellow reveal">
+            <b data-i18n="aboutVibeB">Сайт навайбкожен 🎧</b>
+            <p class="muted" style="margin-top:8px; margin-bottom:0;" data-i18n="aboutVibeT">Это значит — делался без спешки, в удовольствие, с мыслью о тех, кто реально будет этим пользоваться. Не корпоративная вики, не сухая документация. Просто хороший сайт.</p>
+        </div>
+        <h2 class="reveal" data-i18n="aboutNoH">Чего тут нет</h2>
+        <ul class="reveal">
+            <li data-i18n="aboutNo1">Никакой рекламы.</li>
+            <li data-i18n="aboutNo2">Никаких трекеров и сбора данных.</li>
+            <li data-i18n="aboutNo3">Никаких «подпишись, чтобы узнать продолжение».</li>
+            <li data-i18n="aboutNo4">Никаких читов, взломов и серых схем. Только официальная функция движка.</li>
+        </ul>
+        <div class="info-box green reveal">
+            <b data-i18n="aboutBugB">Нашёл баг, ошибку или хочешь добавить игру?</b>
+            <p class="muted" style="margin-top:8px; margin-bottom:0;" data-i18n="aboutBugT">Пиши тому, кто скинул тебе эту ссылку. Сайт живой — если что-то не работает или чего-то не хватает, это можно поправить.</p>
+        </div>
+    </div>
+
+    <div id="footer">
+        <div style="margin-bottom: 10px;">
+            <b style="color: var(--text); font-size: 15px;">ColorNick</b> · <span data-i18n="footerMade">сделано для игроков с</span> <span class="heart">♥</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-dim); line-height: 1.8;">
+            <span data-i18n="footerIdea">Идея и руководство проектом</span> — <b style="color: var(--accent-2);">L0LeR</b><br>
+            <span data-i18n="footerDev">Разработка и сборка сайта</span> — <b style="color: var(--text-mid);">ColorNick Team</b><br>
+            <span style="opacity: 0.6;">2026 · <span data-i18n="footerVibe">сайт навайбкожен</span> 🎧</span>
+        </div>
+    </div>
+
+</div>
+
+<div class="toast" id="toast">Copied ✓</div>
+
+<script>
+var translations = {
+    ru: {
+        tagline: '· гайд по цветным никам для игроков ·',
+        bannerHint: 'Здесь будет баннер. Загрузи картинку как',
+        tabGuide: 'Как это сделать',
+        tabExamples: 'Цвета',
+        tabQa: 'Вопросы',
+        tabGames: 'Игры',
+        tabTable: 'Таблица цветов',
+        tabDev: 'Разработчикам',
+        tabAbout: 'О сайте',
+        guideTitle: 'Как сделать цветной ник в игре',
+        guideP1: 'Представь: ты зашёл в игру — например, в Chicken Gun. Играешь себе спокойно, и вдруг залетает чел с жёлтым ником. Ты такой: «интересно, как он это сделал? читы наверное». А реальность намного проще, чем тебе кажется, дружок 😎',
+        guideP2: 'Работает это так: пишешь в поле ника не просто своё имя, а добавляешь к нему маленькую «команду» — тег. Игра читает этот тег и красит текст. Никаких читов, никаких взломов, всё честно.',
+        guideWarnB: 'Сразу предупрежу:',
+        guideWarnT: ' работает не везде. Если разработчик отключил эту функцию (а некоторые отключают — чтобы никто не спамил и не ломал чат), то ничего не выйдет. Но попробовать стоит — это займёт 10 секунд.',
+        guideStepsH: 'Погнали по шагам',
+        guideStep1: '<b>1.</b> Открываешь настройки профиля или то место, где меняется ник. В большинстве игр это «Профиль» → «Изменить имя», либо прямо на входе в игру.',
+        guideStep2: '<b>2.</b> Вместо обычного <code>Vasya</code> пишешь вот такую штуку:',
+        guideImgHint: 'Сюда — скриншот из игры с цветным ником. Загрузи как',
+        guideImgCaption: 'Так твой ник будет выглядеть в игре',
+        guideStep3: '<b>3.</b> Сохраняешь. Если игра поддерживает — ник сразу станет красным. Причём увидят его таким все: и в лобби, и в чате, и над головой твоего персонажа в бою.',
+        guideStep4: 'Всё. Ничего больше делать не надо.',
+        guideErrorH: 'Самая частая ошибка',
+        guideErrorP: 'Обычно люди пишут так: <code>&lt;color=red&gt;Vasya</code> — и забывают закрыть тег в конце. Или закрывают неправильно, повторяя открывающий. В итоге получается либо вообще ничего, либо — что хуже — цвет «утекает» на весь чат.',
+        guideBadB: '❌ Не работает',
+        guideBadT: 'Цвет зальёт всё, что идёт после тебя.',
+        guideGoodB: '✅ Работает',
+        guideGoodT: 'Обрати внимание на слэш в конце. Он обязателен.',
+        guideRemember: '<b>открыл — обязательно закрой.</b> Как скобки в математике. Открывающий тег <code>&lt;color=...&gt;</code> идёт до ника, закрывающий <code>&lt;/color&gt;</code> — после.',
+        guideTryH: 'Проверь прямо сейчас',
+        guideTryP: 'Введи что-нибудь в поле ниже — увидишь, как это будет выглядеть в игре:',
+        guideTryLabel: 'Пиши сюда свой ник с тегами',
+        guideTryPreview: 'Так увидят тебя другие игроки',
+        guideMoreH: 'Что ещё можно делать с ником',
+        guideMoreP: 'Кроме цвета — есть ещё пара трюков, которые работают по той же системе. Например, сделать ник жирным или наклонным:',
+        guideMoreTh1: 'Что пишешь',
+        guideMoreTh2: 'Что получится',
+        guideMoreB: 'Жирный ник',
+        guideMoreI: 'Курсивный ник',
+        guideMoreS: 'Большой ник',
+        guideCombineP: 'И это можно комбинировать. Например, жирный красный ник будет выглядеть так:',
+        guideCombineRule: 'Правило то же — каждый тег, который открыл, надо закрыть. Причём в обратном порядке. Открыл <code>&lt;b&gt;</code>, потом <code>&lt;color&gt;</code> — закрываешь сначала <code>&lt;/color&gt;</code>, потом <code>&lt;/b&gt;</code>.',
+        exTitle: 'Готовые цвета для ника',
+        exP1: 'Тыкай по любой карточке — код сразу скопируется в буфер. Потом просто замени ТвойНик на своё имя и вставь в игру.',
+        exHexB: 'А если хочется какой-то необычный цвет — например, свой оттенок?',
+        exHexT: 'Тогда используется HEX-код. Выглядит это так: <code>&lt;color=#FF5733&gt;ТвойНик&lt;/color&gt;</code>. Код можно взять в таблице цветов (вкладка выше) или на любом сайте с палитрами.',
+        exComboH: 'Как сочетать цвета',
+        exComboP: 'Если игра разрешает длинные ники — можно вообще разбить ник на части и покрасить каждую в свой цвет. Выглядит вот так:',
+        qaTitle: 'Частые вопросы',
+        qaSub: 'Собрал тут то, что чаще всего спрашивают в чатах и на форумах.',
+        gamesTitle: 'Где это работает',
+        gamesSub: 'Список игр на Unity, где игроки реально используют эту фишку. Но учти — с обновлениями разработчики иногда её выключают.',
+        gamesNotFoundB: 'Не нашёл свою игру?',
+        gamesNotFoundT: 'Просто попробуй ввести тег и посмотреть, что будет. Хуже точно не станет. Если игра показала ник как есть (с символами <code>&lt; &gt;</code>) — значит фишка отключена.',
+        tableTitle: 'Таблица HTML цветов',
+        tableSub: 'Тут собраны все 147 стандартных названий цветов. Клик по строке — копируется готовый код <code>&lt;color=Имя&gt;ТвойНик&lt;/color&gt;</code>.',
+        tableColName: 'Имя цвета',
+        tableColName2: 'Имя цвета',
+        tableRed: 'Красные и розовые',
+        tableOrange: 'Оранжевые и жёлтые',
+        tablePurple: 'Фиолетовые',
+        tableBrown: 'Коричневые',
+        tableGreen: 'Зелёные',
+        tableBlue: 'Синие и голубые',
+        tableWhite: 'Белые оттенки',
+        tableGray: 'Серые',
+        aboutTitle: 'О сайте',
+        aboutSub: 'Пара слов о том, зачем это всё и для кого.',
+        aboutImgHint: 'Сюда — картинку про проект. Загрузи как',
+        aboutP1: 'Этот сайт сделан для тех, кто заходит в игру, видит у кого-то цветной ник — и не понимает, как это вообще устроено. Для тех, кто не шарит в Unity, не знает, что такое Rich Text, и думает, что цветной ник — это читы, донат или админка. Спойлер: нет.',
+        aboutP2: 'Мы собрали всё в одном месте: как это делается, почему это работает, какие цвета можно использовать, где это точно сработает, а где нет. Без занудства, без «данный гайд представляет», без умных слов ради умных слов.',
+        aboutP3: 'Тут есть два уровня:',
+        aboutL1: '<b>Для игроков</b> — пошаговый гайд, примеры цветов, Q&A на частые вопросы, список игр где это работает.',
+        aboutL2: '<b>Для разработчиков</b> — разбор под капотом: как TMP парсит теги, почему string не летит по сети, как синхронизировать ник в мультиплеере.',
+        aboutVibeB: 'Сайт навайбкожен 🎧',
+        aboutVibeT: 'Это значит — делался без спешки, в удовольствие, с мыслью о тех, кто реально будет этим пользоваться. Не корпоративная вики, не сухая документация. Просто хороший сайт.',
+        aboutNoH: 'Чего тут нет',
+        aboutNo1: 'Никакой рекламы.',
+        aboutNo2: 'Никаких трекеров и сбора данных.',
+        aboutNo3: 'Никаких «подпишись, чтобы узнать продолжение».',
+        aboutNo4: 'Никаких читов, взломов и серых схем. Только официальная функция движка.',
+        aboutBugB: 'Нашёл баг, ошибку или хочешь добавить игру?',
+        aboutBugT: 'Пиши тому, кто скинул тебе эту ссылку. Сайт живой — если что-то не работает или чего-то не хватает, это можно поправить.',
+        footerMade: 'сделано для игроков с',
+        footerIdea: 'Идея и руководство проектом',
+        footerDev: 'Разработка и сборка сайта',
+        footerVibe: 'сайт навайбкожен',
+        copiedToast: 'Скопировано ✓',
+        pvConfirm: 'Выбрать',
+        pvRuDesc: 'Сайт будет на русском языке.',
+        pvEnDesc: 'The site will be in English.',
+        pvRuName: 'Русский',
+        pvEnName: 'English'
+    },
+    en: {
+        tagline: '· guide to colored nicknames for players ·',
+        bannerHint: 'Banner goes here. Upload image as',
+        tabGuide: 'How to do it',
+        tabExamples: 'Colors',
+        tabQa: 'FAQ',
+        tabGames: 'Games',
+        tabTable: 'Color table',
+        tabDev: 'For developers',
+        tabAbout: 'About',
+        guideTitle: 'How to make a colored nickname in a game',
+        guideP1: 'Picture this: you join a game — say, Chicken Gun. You\'re just playing, and suddenly some guy flies in with a yellow nickname. You\'re like "how did he do that? probably cheats." But reality is way simpler than you think, buddy 😎',
+        guideP2: 'Here\'s how it works: instead of typing just your name, you add a small "command" — a tag. The game reads this tag and colors the text. No cheats, no hacks, all legit.',
+        guideWarnB: 'Heads up:',
+        guideWarnT: ' it doesn\'t work everywhere. If the developer disabled this feature (and some do — so nobody spams or breaks the chat), nothing will happen. But it\'s worth trying — takes 10 seconds.',
+        guideStepsH: 'Step by step',
+        guideStep1: '<b>1.</b> Open profile settings or wherever the nickname gets changed. In most games it\'s "Profile" → "Change name", or right at the game login.',
+        guideStep2: '<b>2.</b> Instead of plain <code>Vasya</code>, type this thing:',
+        guideImgHint: 'Screenshot from the game with a colored nickname goes here. Upload as',
+        guideImgCaption: 'This is how your nickname will look in-game',
+        guideStep3: '<b>3.</b> Save. If the game supports it — the nickname will immediately turn red. And everyone will see it: in the lobby, in chat, above your character in battle.',
+        guideStep4: 'That\'s it. Nothing else to do.',
+        guideErrorH: 'The most common mistake',
+        guideErrorP: 'Usually people type it like this: <code>&lt;color=red&gt;Vasya</code> — and forget to close the tag at the end. Or close it wrong, repeating the opening one. Result: either nothing happens, or — worse — the color "leaks" onto the whole chat.',
+        guideBadB: '❌ Doesn\'t work',
+        guideBadT: 'The color will flood everything after you.',
+        guideGoodB: '✅ Works',
+        guideGoodT: 'Notice the slash at the end. It\'s mandatory.',
+        guideRemember: '<b>opened it — close it.</b> Like parentheses in math. Opening tag <code>&lt;color=...&gt;</code> goes before the nickname, closing <code>&lt;/color&gt;</code> — after.',
+        guideTryH: 'Try it right now',
+        guideTryP: 'Type something in the field below — you\'ll see how it looks in the game:',
+        guideTryLabel: 'Type your nickname with tags here',
+        guideTryPreview: 'This is how other players will see you',
+        guideMoreH: 'What else you can do with a nickname',
+        guideMoreP: 'Besides color — there are a couple more tricks that work the same way. For example, make the nickname bold or italic:',
+        guideMoreTh1: 'What you type',
+        guideMoreTh2: 'What you get',
+        guideMoreB: 'Bold nickname',
+        guideMoreI: 'Italic nickname',
+        guideMoreS: 'Big nickname',
+        guideCombineP: 'And you can combine them. For example, a bold red nickname looks like this:',
+        guideCombineRule: 'Same rule — every tag you open, you must close. And in reverse order. Opened <code>&lt;b&gt;</code>, then <code>&lt;color&gt;</code> — close first <code>&lt;/color&gt;</code>, then <code>&lt;/b&gt;</code>.',
+        exTitle: 'Ready-made colors for your nickname',
+        exP1: 'Tap any card — the code is instantly copied. Then just replace "ТвойНик" with your name and paste it into the game.',
+        exHexB: 'Want something unusual — like your own shade?',
+        exHexT: 'Then use a HEX code. It looks like this: <code>&lt;color=#FF5733&gt;YourNick&lt;/color&gt;</code>. You can find the code in the color table (tab above) or on any palette site.',
+        exComboH: 'How to combine colors',
+        exComboP: 'If the game allows long nicknames — you can split it into parts and color each one differently. Looks like this:',
+        qaTitle: 'Frequently asked questions',
+        qaSub: 'Collected what people ask most in chats and forums.',
+        gamesTitle: 'Where it works',
+        gamesSub: 'A list of Unity games where players actually use this trick. But note — with updates, developers sometimes disable it.',
+        gamesNotFoundB: 'Didn\'t find your game?',
+        gamesNotFoundT: 'Just try typing the tag and see what happens. Nothing bad will happen. If the game shows the nickname as is (with <code>&lt; &gt;</code> symbols) — the feature is disabled.',
+        tableTitle: 'HTML color table',
+        tableSub: 'All 147 standard color names. Click a row — the ready code <code>&lt;color=Name&gt;YourNick&lt;/color&gt;</code> is copied.',
+        tableColName: 'Color name',
+        tableColName2: 'Color name',
+        tableRed: 'Reds and pinks',
+        tableOrange: 'Oranges and yellows',
+        tablePurple: 'Purples',
+        tableBrown: 'Browns',
+        tableGreen: 'Greens',
+        tableBlue: 'Blues and cyans',
+        tableWhite: 'Whites',
+        tableGray: 'Grays',
+        aboutTitle: 'About',
+        aboutSub: 'A few words about why this exists and who it\'s for.',
+        aboutImgHint: 'Project image goes here. Upload as',
+        aboutP1: 'This site is made for those who join a game, see someone with a colored nickname — and have no idea how it works. For those who don\'t know Unity, don\'t know what Rich Text is, and think a colored nickname means cheats, donations, or admin. Spoiler: no.',
+        aboutP2: 'We gathered everything in one place: how it\'s done, why it works, which colors you can use, where it definitely works and where it doesn\'t. No fluff, no "this guide presents", no fancy words for the sake of fancy words.',
+        aboutP3: 'There are two levels:',
+        aboutL1: '<b>For players</b> — a step-by-step guide, color examples, FAQ, list of games where it works.',
+        aboutL2: '<b>For developers</b> — an under-the-hood breakdown: how TMP parses tags, why string can\'t fly over the network, how to sync nicknames in multiplayer.',
+        aboutVibeB: 'This site is vibe-coded 🎧',
+        aboutVibeT: 'That means — made without rush, with pleasure, thinking about those who will actually use it. Not a corporate wiki, not dry documentation. Just a good site.',
+        aboutNoH: 'What\'s not here',
+        aboutNo1: 'No ads.',
+        aboutNo2: 'No trackers or data collection.',
+        aboutNo3: 'No "subscribe to see more".',
+        aboutNo4: 'No cheats, hacks or grey schemes. Only the engine\'s official feature.',
+        aboutBugB: 'Found a bug or want to add a game?',
+        aboutBugT: 'Message whoever sent you this link. The site is alive — if something doesn\'t work or is missing, it can be fixed.',
+        footerMade: 'made for players with',
+        footerIdea: 'Idea and project lead',
+        footerDev: 'Development and site assembly',
+        footerVibe: 'the site is vibe-coded',
+        copiedToast: 'Copied ✓',
+        pvConfirm: 'Confirm',
+        pvRuDesc: 'Сайт будет на русском языке.',
+        pvEnDesc: 'The site will be in English.',
+        pvRuName: 'Русский',
+        pvEnName: 'English'
+    }
+};
+
+var qaData = {
+    ru: [
+        { q: 'Как это работает в коде игры, Юнити?', a: '<p>Если совсем просто — игра не «перекрашивает» твой ник. Она <b>читает</b> текст и превращает теги в данные для отрисовки.</p><p>Вот что происходит по шагам:</p><ol><li><b>Парсинг.</b> TextMeshPro пробегает по строке символ за символом. Когда видит <code>&lt;</code>, начинает читать тег. Имя тега превращается в число (хеш-код). <code>&lt;color&gt;</code> — это <code>81999901</code>. Сравнивать числа быстрее, чем строки.</li><li><b>Применение.</b> Когда хеш совпадает с «color», TMP читает значение (<code>red</code> или <code>#FF0000</code>) и запоминает: «с этого момента весь текст — этого цвета».</li><li><b>Генерация меша.</b> Каждый символ превращается в квадрат из 4 вершин. К этим вершинам прикрепляется цвет — тот, который ты задал тегом.</li></ol><p>В мультиплеере строка с тегами должна <b>синхронизироваться</b> между игроками. Обычный <code>string</code> не может лететь по сети — используется <code>FixedString64Bytes</code> из <code>Unity.Collections</code>.</p>' },
+        { q: 'Ввёл всё правильно, а ник не красится. Что не так?', a: 'Скорее всего разработчики отключили эту функцию. Такое бывает — некоторые специально её вырубают, чтобы игроки не спамили цветными сообщениями в чате. Попробуй на другом сервере или в другом режиме.' },
+        { q: 'Ой, я забыл закрыть тег и весь чат стал красным. Что делать?', a: 'Срочно меняй ник обратно, добавив <code>&lt;/color&gt;</code> в конец. Пока ты это не сделаешь, у всех игроков на сервере всё будет красным. Если нельзя быстро сменить ник — перезайди.' },
+        { q: 'Можно ли сделать градиент из нескольких цветов?', a: 'Да, если игра разрешает длинные ники. Разбей ник на несколько частей и каждую покрась отдельно: <code>&lt;color=red&gt;Крас&lt;/color&gt;&lt;color=orange&gt;но&lt;/color&gt;&lt;color=yellow&gt;Жёлтый&lt;/color&gt;.' },
+        { q: 'А жирным или курсивом можно?', a: 'Можно. Жирный — <code>&lt;b&gt;Ник&lt;/b&gt;</code>, курсив — <code>&lt;i&gt;Ник&lt;/i&gt;</code>. Комбинируется с цветом. Закрывай теги в обратном порядке.' },
+        { q: 'Это вообще не банят?', a: 'Нет. Это не чит и не взлом, а официальная функция движка. Единственное, за что могут дать мут — если вставишь что-то оскорбительное или сломаешь чат незакрытым тегом.' },
+        { q: 'А если HEX-код вместо названия цвета?', a: 'Работает в большинстве Unity-игр. Формат: <code>&lt;color=#FF5733&gt;Ник&lt;/color&gt;</code>. Позволяет поставить любой цвет.' },
+        { q: 'Почему у других ник цветной, а у меня нет?', a: 'Три варианта: ошибка в теге, игра не поддерживает Rich Text, или другая версия/сервер, где функцию вырубили.' },
+        { q: 'Можно ли вставить в ник смайлик или иконку?', a: 'Иногда да. Обычные эмодзи (⚡★♥) обычно проходят, если игра не фильтрует юникод. А картинку через <code>&lt;sprite&gt;</code> в нике почти никогда не вставить.' }
+    ],
+    en: [
+        { q: 'How does it work in the game code, Unity?', a: '<p>Simply put — the game doesn\'t "recolor" your nickname. It <b>reads</b> the text and turns tags into render data.</p><p>What happens step by step:</p><ol><li><b>Parsing.</b> TextMeshPro scans the string character by character. When it sees <code>&lt;</code>, it starts reading a tag. The tag name turns into a number (hash). <code>&lt;color&gt;</code> is <code>81999901</code>. Comparing numbers is faster than strings.</li><li><b>Applying.</b> When the hash matches "color", TMP reads the value (<code>red</code> or <code>#FF0000</code>) and remembers: "from now on — this color".</li><li><b>Mesh generation.</b> Each character becomes a quad of 4 vertices. Color is attached to those vertices — the one you set with the tag.</li></ol><p>In multiplayer, the string with tags must be <b>synchronized</b> between players. Plain <code>string</code> can\'t fly over the network — <code>FixedString64Bytes</code> from <code>Unity.Collections</code> is used instead.</p>' },
+        { q: 'I typed everything correctly, but the nickname isn\'t colored. What\'s wrong?', a: 'Most likely the developers disabled this feature. Some do it on purpose to prevent color spam in chat. Try another server or game mode.' },
+        { q: 'Oops, I forgot to close the tag and the whole chat turned red. What do I do?', a: 'Quickly change your nickname back by adding <code>&lt;/color&gt;</code> at the end. Until you do, everyone on the server will see everything in red. If you can\'t change the nickname quickly — reconnect.' },
+        { q: 'Can I make a gradient with multiple colors?', a: 'Yes, if the game allows long nicknames. Split the nickname into parts and color each one: <code>&lt;color=red&gt;Red&lt;/color&gt;&lt;color=orange&gt;Or&lt;/color&gt;&lt;color=yellow&gt;Yellow&lt;/color&gt;.' },
+        { q: 'Can I make it bold or italic?', a: 'Yes. Bold — <code>&lt;b&gt;Nick&lt;/b&gt;</code>, italic — <code>&lt;i&gt;Nick&lt;/i&gt;</code>. Combines with color. Close tags in reverse order.' },
+        { q: 'Won\'t I get banned for this?', a: 'No. It\'s not a cheat or a hack — it\'s an official engine feature. The only reason for a mute is if you put something offensive or break the chat with an unclosed tag.' },
+        { q: 'What about HEX codes instead of color names?', a: 'Works in most Unity games. Format: <code>&lt;color=#FF5733&gt;Nick&lt;/color&gt;</code>. Lets you use any color.' },
+        { q: 'Why do others have a colored nickname but I don\'t?', a: 'Three options: a tag error, the game doesn\'t support Rich Text, or a different version/server where the feature is disabled.' },
+        { q: 'Can I put an emoji or icon in the nickname?', a: 'Sometimes. Regular emoji (⚡★♥) usually work if the game doesn\'t filter Unicode. But an image via <code>&lt;sprite&gt;</code> in a nickname is almost impossible.' }
+    ]
+};
+
+var gamesData = {
+    ru: [
+        { name: 'Chicken Gun', tag: 'Работает', desc: 'Классика. Теги работают и в нике, и в чате. Проверено лично.', code: '<color=red>Петух</color>', image: 'images/game-chicken-gun.png' },
+        { name: 'Cursed House Multiplayer (GMM 1)', tag: 'Работает', desc: 'Мультиплеерный мод на Granny, сделан на Unity. Ник меняется в настройках.', code: '<color=cyan>Игрок</color>', image: 'images/game-gmm1.png' },
+        { name: 'Cursed House Multiplayer 2 (GMM 2)', tag: 'Работает', desc: 'Сиквел GMM. Всё то же самое — Unity, кастомные ники, Rich Text живой.', code: '<color=gold>★Ник★</color>', image: 'images/game-gmm2.png' },
+        { name: 'Free Fire', tag: 'Работает', desc: 'Но для смены ника нужна карточка переименования. Зато цвет — бесплатно.', code: '<color=orange>Ник</color>', image: 'images/game-free-fire.png' }
+    ],
+    en: [
+        { name: 'Chicken Gun', tag: 'Works', desc: 'A classic. Tags work in nickname and chat. Personally tested.', code: '<color=red>Rooster</color>', image: 'images/game-chicken-gun.png' },
+        { name: 'Cursed House Multiplayer (GMM 1)', tag: 'Works', desc: 'Multiplayer mod on Granny, made in Unity. Nickname is changed in settings.', code: '<color=cyan>Player</color>', image: 'images/game-gmm1.png' },
+        { name: 'Cursed House Multiplayer 2 (GMM 2)', tag: 'Works', desc: 'Sequel to GMM. Same thing — Unity, custom nicknames, Rich Text alive.', code: '<color=gold>★Nick★</color>', image: 'images/game-gmm2.png' },
+        { name: 'Free Fire', tag: 'Works', desc: 'But you need a rename card to change the nickname. Color is free though.', code: '<color=orange>Nick</color>', image: 'images/game-free-fire.png' }
+    ]
+};
+
+var devContent = {
+    ru: '<h1 class="reveal">Как это работает под капотом</h1><p class="reveal muted">Если ты делаешь игру и хочешь понять, почему <code>&lt;color=red&gt;</code> вообще превращается в красный текст — тут пошагово.</p><h2 class="reveal">1. Почему текст вообще становится цветным</h2><p class="reveal">В Unity (особенно в TextMeshPro) весь текст проходит через <b>конвейер обработки</b>. Это встроенная система форматирования — <b>Rich Text</b>.</p><p class="reveal">Когда ты вставляешь <code>&lt;color=red&gt;Вася&lt;/color&gt;</code>, движок не показывает эти символы. Он: <b>парсит</b> строку, <b>преобразует</b> тег в инструкцию, <b>строит меш</b> с учётом цвета.</p><h3 class="reveal">Как работает парсер</h3><p class="reveal">Внутри TMP_Text есть класс <code>TMP_TextParsingUtilities</code>. Он превращает имя тега в <b>хеш-код</b> (число). Сравнивать числа быстрее, чем строки. <code>&lt;color&gt;</code> — это <code>81999901</code>, <code>&lt;/color&gt;</code> — <code>1909026194</code>.</p><div class="info-box reveal"><b>Почему это важно?</b><p class="muted" style="margin-top:8px; margin-bottom:0;">Если пишешь тег с ошибкой (лишний пробел), хеш не совпадёт — тег не сработает.</p></div><h2 class="reveal">2. Что происходит с текстом дальше</h2><ul class="reveal"><li><b>Классификация символов.</b> TMP определяет тип символа (буква, эмодзи, CJK).</li><li><b>Расчёт layout\'а.</b> Каждый символ получает позицию X/Y.</li><li><b>Генерация меша.</b> Каждый символ — 4 вершины, к ним крепится цвет.</li></ul><h2 class="reveal">3. Scope тегов</h2><p class="reveal">Теги в TMP имеют <b>область действия</b>. <code>&lt;color=red&gt;Вася</code> действует до конца строки. Хочешь ограничить — ставь <code>&lt;/color&gt;</code>.</p><h2 class="reveal">4. Почему string не синхронизируется</h2><p class="reveal">В Netcode for GameObjects <code>NetworkVariable&lt;string&gt;</code> не компилируется — string управляемый тип, может менять размер в куче. Используй <b>FixedString</b>:</p><pre class="reveal"><span class="kw">public</span> <span class="type">NetworkVariable</span>&lt;<span class="type">FixedString64Bytes</span>&gt; Name = <span class="kw">new</span>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);</pre><h2 class="reveal">5. Почему права должны быть Owner</h2><p class="reveal"><code>NetworkVariableWritePermission.Owner</code> — защита от читеров. Только владелец объекта может менять свою переменную.</p><div class="info-box red reveal"><b>Безопасность</b><p class="muted" style="margin-top:8px; margin-bottom:0;">Всегда валидируй ник на сервере. Иначе игрок может отправить строку с незакрытым тегом и сломать чат всем.</p></div><h2 class="reveal">6. Полный пример</h2><pre class="reveal"><span class="kw">public class</span> <span class="type">PlayerNameDisplay</span> : <span class="type">NetworkBehaviour</span>\n{\n    <span class="kw">public</span> <span class="type">NetworkVariable</span>&lt;<span class="type">FixedString128Bytes</span>&gt; Nickname = <span class="kw">new</span>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);\n\n    [<span class="type">SerializeField</span>] <span class="kw">private</span> <span class="type">TMP_Text</span> nameText;\n\n    <span class="kw">public override void</span> OnNetworkSpawn()\n    {\n        Nickname.OnValueChanged += (_, n) =&gt; nameText.text = n.ToString();\n        nameText.text = Nickname.Value.ToString();\n    }\n}</pre><h2 class="reveal">7. Исходники</h2><ul class="reveal"><li><code>TMP_TextParsingUtilities.cs</code> — парсинг и хеширование тегов.</li><li><code>TMP_RichTextTagsCommon.cs</code> — все хеш-коды тегов.</li><li><code>TMPro_Private.cs</code> — цикл парсинга.</li></ul>',
+    en: '<h1 class="reveal">How it works under the hood</h1><p class="reveal muted">If you\'re making a game and want to understand why <code>&lt;color=red&gt;</code> turns into red text — here\'s the full breakdown.</p><h2 class="reveal">1. Why text becomes colored</h2><p class="reveal">In Unity (especially TextMeshPro), all text goes through an <b>processing pipeline</b>. It\'s a built-in formatting system — <b>Rich Text</b>.</p><p class="reveal">When you insert <code>&lt;color=red&gt;Vasya&lt;/color&gt;</code>, the engine doesn\'t show those characters. It: <b>parses</b> the string, <b>converts</b> the tag into an instruction, <b>builds the mesh</b> with color applied.</p><h3 class="reveal">How the parser works</h3><p class="reveal">Inside TMP_Text there\'s a class called <code>TMP_TextParsingUtilities</code>. It converts the tag name into a <b>hash code</b> (a number). Comparing numbers is faster than strings. <code>&lt;color&gt;</code> is <code>81999901</code>, <code>&lt;/color&gt;</code> is <code>1909026194</code>.</p><div class="info-box reveal"><b>Why is this important?</b><p class="muted" style="margin-top:8px; margin-bottom:0;">If you typo the tag (extra space), the hash won\'t match — and the tag won\'t work.</p></div><h2 class="reveal">2. What happens to text next</h2><ul class="reveal"><li><b>Character classification.</b> TMP determines the type (letter, emoji, CJK).</li><li><b>Layout calculation.</b> Each character gets X/Y position.</li><li><b>Mesh generation.</b> Each character — 4 vertices, with color attached.</li></ul><h2 class="reveal">3. Tag scope</h2><p class="reveal">Tags in TMP have a <b>scope</b>. <code>&lt;color=red&gt;Vasya</code> works until end of line. To limit — use <code>&lt;/color&gt;</code>.</p><h2 class="reveal">4. Why string doesn\'t sync</h2><p class="reveal">In Netcode for GameObjects <code>NetworkVariable&lt;string&gt;</code> doesn\'t compile — string is a managed type that can change size in heap. Use <b>FixedString</b>:</p><pre class="reveal"><span class="kw">public</span> <span class="type">NetworkVariable</span>&lt;<span class="type">FixedString64Bytes</span>&gt; Name = <span class="kw">new</span>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);</pre><h2 class="reveal">5. Why permissions should be Owner</h2><p class="reveal"><code>NetworkVariableWritePermission.Owner</code> — anti-cheat protection. Only the object owner can change their own variable.</p><div class="info-box red reveal"><b>Security</b><p class="muted" style="margin-top:8px; margin-bottom:0;">Always validate the nickname on the server. Otherwise a player can send a string with an unclosed tag and break the chat for everyone.</p></div><h2 class="reveal">6. Full example</h2><pre class="reveal"><span class="kw">public class</span> <span class="type">PlayerNameDisplay</span> : <span class="type">NetworkBehaviour</span>\n{\n    <span class="kw">public</span> <span class="type">NetworkVariable</span>&lt;<span class="type">FixedString128Bytes</span>&gt; Nickname = <span class="kw">new</span>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);\n\n    [<span class="type">SerializeField</span>] <span class="kw">private</span> <span class="type">TMP_Text</span> nameText;\n\n    <span class="kw">public override void</span> OnNetworkSpawn()\n    {\n        Nickname.OnValueChanged += (_, n) =&gt; nameText.text = n.ToString();\n        nameText.text = Nickname.Value.ToString();\n    }\n}</pre><h2 class="reveal">7. Sources</h2><ul class="reveal"><li><code>TMP_TextParsingUtilities.cs</code> — parsing and hashing.</li><li><code>TMP_RichTextTagsCommon.cs</code> — all tag hash codes.</li><li><code>TMPro_Private.cs</code> — parsing loop.</li></ul>'
+};
+
+var colorList = [
+    { name: 'red',          preview: 'Красный' },
+    { name: 'orange',       preview: 'Оранжевый' },
+    { name: 'gold',         preview: 'Золотой' },
+    { name: 'yellow',       preview: 'Жёлтый' },
+    { name: 'lime',         preview: 'Лайм' },
+    { name: 'green',        preview: 'Зелёный' },
+    { name: 'teal',         preview: 'Бирюзовый' },
+    { name: 'cyan',         preview: 'Циан' },
+    { name: 'skyblue',      preview: 'Небесный' },
+    { name: 'blue',         preview: 'Синий' },
+    { name: 'navy',         preview: 'Тёмно-синий' },
+    { name: 'purple',       preview: 'Фиолетовый' },
+    { name: 'violet',       preview: 'Виолет' },
+    { name: 'magenta',      preview: 'Маджента' },
+    { name: 'pink',         preview: 'Розовый' },
+    { name: 'hotpink',      preview: 'Ярко-розовый' },
+    { name: 'brown',        preview: 'Коричневый' },
+    { name: 'gray',         preview: 'Серый' },
+    { name: 'silver',       preview: 'Серебряный' },
+    { name: 'white',        preview: 'Белый' },
+    { name: 'black',        preview: 'Чёрный' },
+    { name: '#FF5733',      preview: 'Кастом HEX' },
+    { name: '#FF00FF',      preview: 'Неон-маджента' },
+    { name: '#00FFAA',      preview: 'Мятный' }
+];
+
+var currentLang = 'ru';
+var hoverLang = null;
+var observer;
+var toast, toastTimer;
+var titleTimer = null;
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function showToast() {
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 1600);
+}
+
+function copy(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showToast, showToast);
+    } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch(e) {}
+        document.body.removeChild(ta);
+        showToast();
+    }
+}
+
+function applyLang(lang) {
+    document.documentElement.lang = lang;
+    var t = translations[lang];
+
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var key = el.getAttribute('data-i18n');
+        if (t[key] !== undefined) el.textContent = t[key];
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(function(el) {
+        var key = el.getAttribute('data-i18n-html');
+        if (t[key] !== undefined) el.innerHTML = t[key];
+    });
+
+    document.getElementById('pvConfirm').textContent = t.pvConfirm;
+    document.getElementById('toast').textContent = t.copiedToast;
+
+    document.querySelectorAll('[data-lang-switch]').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.langSwitch === currentLang);
+    });
+
+    document.getElementById('devContent').innerHTML = devContent[lang];
+
+    renderQa(lang);
+    renderGames(lang);
+    renderColors();
+    updateLivePreview();
+    refreshObserver();
+}
+
+function startTitleRandom() {
+    var el = document.getElementById('langOverlayTitle');
+    if (!el) return;
+    var options = ['Выбери язык', 'Choose your language'];
+    var last = -1;
+    var stopAt = Date.now() + 1250;
+
+    function step() {
+        if (Date.now() >= stopAt) {
+            el.textContent = 'Выбери язык';
+            el.style.opacity = '1';
+            titleTimer = null;
+            return;
+        }
+        var idx = Math.floor(Math.random() * options.length);
+        if (idx === last) idx = (idx + 1) % options.length;
+        last = idx;
+        el.style.opacity = '0';
+        setTimeout(function() {
+            el.textContent = options[idx];
+            el.style.opacity = '1';
+        }, 200);
+        var delay = 180 + Math.random() * 180;
+        titleTimer = setTimeout(step, delay + 200);
+    }
+    step();
+}
+
+function updatePreview(lang) {
+    var t = translations[lang];
+    var flag = lang === 'ru' ? '🇷🇺' : '🇺🇸';
+    document.getElementById('pvFlag').textContent = flag;
+    document.getElementById('pvName').textContent = lang === 'ru' ? t.pvRuName : t.pvEnName;
+    document.getElementById('pvDesc').textContent = lang === 'ru' ? t.pvRuDesc : t.pvEnDesc;
+    document.getElementById('langStage').classList.add('shift');
+    document.getElementById('langPreview').classList.add('show');
+    document.getElementById('langOverlay').classList.add('hovered');
+}
+
+function hidePreview() {
+    document.getElementById('langStage').classList.remove('shift');
+    document.getElementById('langPreview').classList.remove('show');
+    document.getElementById('langOverlay').classList.remove('hovered');
+}
+
+function closeOverlay() {
+    document.getElementById('langOverlay').classList.add('hidden');
+    if (titleTimer) {
+        clearTimeout(titleTimer);
+        titleTimer = null;
+    }
+}
+
+function renderQa(lang) {
+    var list = document.getElementById('qaList');
+    list.innerHTML = '';
+    qaData[lang].forEach(function(item) {
+        var wrap = document.createElement('div');
+        wrap.className = 'qa-item reveal';
+        wrap.innerHTML =
+            '<div class="qa-q"><span>' + item.q + '</span><span class="arrow">⌄</span></div>' +
+            '<div class="qa-a"><div class="qa-a-inner">' + item.a + '</div></div>';
+        list.appendChild(wrap);
+    });
+    list.querySelectorAll('.qa-q').forEach(function(q) {
+        q.addEventListener('click', function() {
+            var item = q.parentElement;
+            var body = item.querySelector('.qa-a');
+            var isOpen = item.classList.toggle('open');
+            body.style.height = isOpen ? (body.scrollHeight + 'px') : '0px';
+        });
+    });
+    refreshObserver();
+}
+
+function renderGames(lang) {
+    var grid = document.getElementById('gamesGrid');
+    grid.innerHTML = '';
+    gamesData[lang].forEach(function(g) {
+        var card = document.createElement('div');
+        card.className = 'game-card reveal';
+        card.innerHTML =
+            '<div class="game-img">' +
+                '<img src="' + g.image + '" alt="' + g.name + '" onerror="this.style.display=\'none\'; this.parentElement.querySelector(\'.game-img-fallback\').style.display=\'flex\';">' +
+                '<div class="game-img-fallback" style="display:none;"><span class="icon">🎮</span><span>Загрузи как</span><code>' + g.image + '</code></div>' +
+            '</div>' +
+            '<div class="game-body">' +
+                '<span class="game-tag">' + g.tag + '</span>' +
+                '<h4>' + g.name + '</h4>' +
+                '<p>' + g.desc + '</p>' +
+                '<span class="game-code">' + escapeHtml(g.code) + '</span>' +
+            '</div>';
+        grid.appendChild(card);
+    });
+    refreshObserver();
+}
+
+function renderColors() {
+    var grid = document.getElementById('colorGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    colorList.forEach(function(c) {
+        var card = document.createElement('div');
+        card.className = 'color-card reveal';
+        card.innerHTML =
+            '<div class="preview" style="color:' + c.name + ';">' + c.preview + '</div>' +
+            '<div class="code-line">&lt;color=' + c.name + '&gt;ТвойНик&lt;/color&gt;</div>' +
+            '<span class="copy-state">✓</span>';
+        card.addEventListener('click', function() {
+            copy('<color=' + c.name + '>ТвойНик</color>');
+            card.classList.add('copied');
+            setTimeout(function() { card.classList.remove('copied'); }, 1200);
+        });
+        grid.appendChild(card);
+    });
+    refreshObserver();
+}
+
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(function(b) {
+            b.classList.toggle('active', b === btn);
+        });
+        document.querySelectorAll('.tab-panel').forEach(function(p) {
+            p.classList.toggle('active', p.id === 'tab-' + tab);
+        });
+        refreshObserver();
+    });
+});
+
+function updateLivePreview() {
+    var input = document.getElementById('liveInput');
+    var out = document.getElementById('livePreview');
+    if (!input || !out) return;
+    out.innerHTML = input.value.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+}
+
+var liveInput = document.getElementById('liveInput');
+if (liveInput) {
+    liveInput.addEventListener('input', updateLivePreview);
+}
+
+function refreshObserver() {
+    var items = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) {
+        items.forEach(function(el) { el.classList.add('visible'); });
+        return;
+    }
+    if (!observer) {
+        observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(en) {
+                if (en.isIntersecting) {
+                    en.target.classList.add('visible');
+                    observer.unobserve(en.target);
+                }
+            });
+        }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+    }
+    items.forEach(function(el) {
+        if (!el.classList.contains('visible')) observer.observe(el);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    toast = document.getElementById('toast');
+    var langStage = document.getElementById('langStage');
+
+    document.querySelectorAll('.lang-btn').forEach(function(btn) {
+        btn.addEventListener('mouseenter', function() {
+            hoverLang = btn.dataset.preview;
+            applyLang(hoverLang);
+            updatePreview(hoverLang);
+        });
+        btn.addEventListener('click', function() {
+            currentLang = btn.dataset.lang;
+            hoverLang = null;
+            applyLang(currentLang);
+            hidePreview();
+            closeOverlay();
+        });
+    });
+
+    langStage.addEventListener('mouseleave', function() {
+        hoverLang = null;
+        applyLang(currentLang);
+        hidePreview();
+    });
+
+    document.getElementById('pvConfirm').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var name = document.getElementById('pvName').textContent;
+        var lang = (name === 'English') ? 'en' : 'ru';
+        currentLang = lang;
+        hoverLang = null;
+        applyLang(currentLang);
+        hidePreview();
+        closeOverlay();
+    });
+
+    document.querySelectorAll('[data-lang-switch]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            currentLang = btn.dataset.langSwitch;
+            hoverLang = null;
+            applyLang(currentLang);
+        });
+    });
+
+    currentLang = 'ru';
+    applyLang(currentLang);
+    refreshObserver();
+    startTitleRandom();
+});
+</script>
+</body>
+</html>
